@@ -31,12 +31,7 @@ class LearningItem {
     this.code,
     this.options = const [],
     this.correctOptionIndex,
-  }) : assert(
-         options.length == 0 ||
-             (correctOptionIndex != null &&
-                 correctOptionIndex >= 0 &&
-                 correctOptionIndex < options.length),
-       );
+  });
 
   final String id;
   final LearningTopic topic;

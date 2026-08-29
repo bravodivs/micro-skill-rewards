@@ -6,15 +6,13 @@ import 'package:momentum_learning_feed/features/feed/domain/progress_snapshot.da
 
 class FeedController extends ChangeNotifier {
   FeedController({
-    required LearningContentRepository contentRepository,
-    required ProgressStore progressStore,
+    required this.contentRepository,
+    required this.progressStore,
     DateTime Function()? now,
-  }) : _contentRepository = contentRepository,
-       _progressStore = progressStore,
-       _now = now ?? DateTime.now;
+  }) : _now = now ?? DateTime.now;
 
-  final LearningContentRepository _contentRepository;
-  final ProgressStore _progressStore;
+  final LearningContentRepository contentRepository;
+  final ProgressStore progressStore;
   final DateTime Function() _now;
 
   late final List<LearningItem> _allItems;
@@ -48,8 +46,8 @@ class FeedController extends ChangeNotifier {
       _allItems.isEmpty ? 0 : _completedIds.length / _allItems.length;
 
   Future<void> initialize() async {
-    _allItems = _contentRepository.dailyItems;
-    final snapshot = await _progressStore.load();
+    _allItems = contentRepository.dailyItems;
+    final snapshot = await progressStore.load();
     _xp = snapshot.xp;
     _streak = snapshot.streak;
     _completedIds = Set.of(snapshot.completedIds);
@@ -143,5 +141,5 @@ class FeedController extends ChangeNotifier {
     lastActiveDate: _lastActiveDate,
   );
 
-  Future<void> _persist() => _progressStore.save(snapshot);
+  Future<void> _persist() => progressStore.save(snapshot);
 }
