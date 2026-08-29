@@ -41,13 +41,17 @@ void main() {
     );
     await tester.pumpWidget(MomentumApp(controller: controller));
 
-    await tester.tap(find.byKey(const Key('complete_item_button')));
+    final completeButton = find.byKey(const Key('complete_item_button'));
+    await tester.ensureVisible(completeButton);
+    await tester.tap(completeButton);
     await tester.pumpAndSettle();
 
     expect(find.text('Keep the momentum'), findsOneWidget);
     expect(controller.xp, 10);
 
-    await tester.tap(find.byTooltip('Save lesson'));
+    final bookmark = find.byTooltip('Save lesson');
+    await tester.ensureVisible(bookmark);
+    await tester.tap(bookmark);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Saved'));
     await tester.pumpAndSettle();
