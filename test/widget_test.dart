@@ -1,30 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:momentum_learning_feed/app.dart';
+import 'package:momentum_learning_feed/core/storage/app_database.dart';
 import 'package:momentum_learning_feed/features/feed/application/feed_controller.dart';
 import 'package:momentum_learning_feed/features/feed/data/progress_store.dart';
 import 'package:momentum_learning_feed/features/feed/domain/progress_snapshot.dart';
 
 import 'test_support.dart';
 
-Future<FeedController> createController(
-  WidgetTester tester, {
-  ProgressSnapshot snapshot = const ProgressSnapshot(),
-}) async {
+Future<({FeedController controller, AppDatabase appDatabase})>
+createController({ProgressSnapshot snapshot = const ProgressSnapshot()}) async {
   final appDatabase = await openTestDatabase();
-  addTearDown(appDatabase.close);
   final controller = FeedController(
     contentRepository: testRepository(appDatabase: appDatabase),
     progressStore: MemoryProgressStore(snapshot),
     now: () => DateTime(2026, 9, 24),
   );
   await controller.initialize();
-  return controller;
+  return (controller: controller, appDatabase: appDatabase);
 }
 
 void main() {
   testWidgets('onboarding opens the finite daily feed', (tester) async {
-    final controller = await createController(tester);
+    final harness = await createController();
+    final controller = harness.controller;
     await tester.pumpWidget(MomentumApp(controller: controller));
 
     expect(find.text('Scroll less.\nGrow more.'), findsOneWidget);
@@ -37,13 +36,15 @@ void main() {
 
     expect(find.text('MOMENTUM'), findsOneWidget);
     expect(controller.allItems, hasLength(50));
+    await tester.pumpWidget(const SizedBox.shrink());
+    await harness.appDatabase.close();
   });
 
   testWidgets('learning and bookmarking update the interface', (tester) async {
-    final controller = await createController(
-      tester,
+    final harness = await createController(
       snapshot: const ProgressSnapshot(onboardingSeen: true),
     );
+    final controller = harness.controller;
     await tester.pumpWidget(MomentumApp(controller: controller));
 
     final concept = controller.allItems.firstWhere(
@@ -77,5 +78,7 @@ void main() {
 
     expect(find.text('Saved lessons'), findsOneWidget);
     expect(find.text(concept.title), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await harness.appDatabase.close();
   });
 }
