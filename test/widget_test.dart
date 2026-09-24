@@ -33,6 +33,7 @@ void main() {
     await tester.tap(find.textContaining('Start today'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
+    await controller.onPageViewed(0);
 
     expect(find.text('MOMENTUM'), findsOneWidget);
     expect(controller.allItems, hasLength(50));
@@ -72,6 +73,7 @@ void main() {
     await tester.tap(find.text('Saved'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
+    await controller.onPageViewed(conceptIndex);
 
     expect(find.text('Saved lessons'), findsOneWidget);
     expect(find.text(concept.title), findsOneWidget);
