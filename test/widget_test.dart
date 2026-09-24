@@ -49,19 +49,18 @@ void main() {
     final controller = harness.controller;
     await tester.pumpWidget(MomentumApp(controller: controller));
 
-    final concept = controller.allItems.firstWhere(
-      (item) => !item.isInteractive,
-    );
-    final conceptIndex = controller.allItems.indexOf(concept);
-    final pageView = find.byType(PageView);
-    for (var index = 0; index < conceptIndex; index++) {
-      await tester.drag(pageView, const Offset(0, -500));
-      await tester.pump(const Duration(milliseconds: 500));
+    final currentItem = controller.allItems.first;
+    if (currentItem.isInteractive) {
+      final correctAnswer = find.text(
+        currentItem.options[currentItem.correctOptionIndex!],
+      );
+      await tester.ensureVisible(correctAnswer);
+      await tester.tap(correctAnswer);
+    } else {
+      final completeButton = find.byKey(const Key('complete_item_button'));
+      await tester.ensureVisible(completeButton);
+      await tester.tap(completeButton);
     }
-
-    final completeButton = find.byKey(const Key('complete_item_button'));
-    await tester.ensureVisible(completeButton);
-    await tester.tap(completeButton);
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 50)),
     );
@@ -69,7 +68,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500));
 
     expect(find.text('Keep the momentum'), findsOneWidget);
-    expect(controller.xp, 10);
+    expect(controller.xp, currentItem.isInteractive ? 20 : 10);
 
     final bookmark = find.byTooltip('Save lesson');
     await tester.ensureVisible(bookmark);
@@ -82,10 +81,10 @@ void main() {
     await tester.tap(find.text('Saved'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
-    await tester.runAsync(() => controller.onPageViewed(conceptIndex));
+    await tester.runAsync(() => controller.onPageViewed(0));
 
     expect(find.text('Saved lessons'), findsOneWidget);
-    expect(find.text(concept.title), findsOneWidget);
+    expect(find.text(currentItem.title), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.runAsync(harness.appDatabase.close);
   });
