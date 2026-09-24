@@ -31,7 +31,8 @@ void main() {
     expect(find.textContaining('50 cards'), findsOneWidget);
 
     await tester.tap(find.textContaining('Start today'));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
 
     expect(find.text('MOMENTUM'), findsOneWidget);
     expect(controller.allItems, hasLength(50));
@@ -51,13 +52,14 @@ void main() {
     final pageView = find.byType(PageView);
     for (var index = 0; index < conceptIndex; index++) {
       await tester.drag(pageView, const Offset(0, -500));
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 500));
     }
 
     final completeButton = find.byKey(const Key('complete_item_button'));
     await tester.ensureVisible(completeButton);
     await tester.tap(completeButton);
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
 
     expect(find.text('Keep the momentum'), findsOneWidget);
     expect(controller.xp, 10);
@@ -65,9 +67,11 @@ void main() {
     final bookmark = find.byTooltip('Save lesson');
     await tester.ensureVisible(bookmark);
     await tester.tap(bookmark);
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
     await tester.tap(find.text('Saved'));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
 
     expect(find.text('Saved lessons'), findsOneWidget);
     expect(find.text(concept.title), findsOneWidget);
