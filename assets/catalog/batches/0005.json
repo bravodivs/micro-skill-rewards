@@ -1,0 +1,103 @@
+[
+  {
+    "id": "dsa-merge-sort-v1",
+    "topic": "dsa",
+    "type": "quiz",
+    "title": "Divide, sort, merge",
+    "body": "What is merge sort's typical time complexity?",
+    "options": ["O(n²)", "O(n log n)", "O(log n)"],
+    "correctOptionIndex": 1,
+    "takeaway": "Each level processes n items across log n levels.",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "dsa-dp-v1",
+    "topic": "dsa",
+    "type": "concept",
+    "title": "Remember overlapping answers",
+    "body": "Dynamic programming stores answers to repeated subproblems instead of solving them again.",
+    "takeaway": "Look for overlapping subproblems and an optimal substructure.",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "dsa-greedy-v1",
+    "topic": "dsa",
+    "type": "quiz",
+    "title": "Choose locally, prove globally",
+    "body": "What does a greedy algorithm do at each step?",
+    "options": ["Tries every complete solution", "Chooses the locally best option", "Always uses recursion"],
+    "correctOptionIndex": 1,
+    "takeaway": "Greedy choices need a proof that local decisions lead to a global optimum.",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "functional-declarative-v1",
+    "topic": "functional",
+    "type": "concept",
+    "title": "Say what, not every how",
+    "body": "Declarative code describes the desired transformation instead of manual control flow.",
+    "takeaway": "Prefer expressive pipelines when they stay readable.",
+    "difficulty": "beginner"
+  },
+  {
+    "id": "functional-memoize-v1",
+    "topic": "functional",
+    "type": "quiz",
+    "title": "Cache a pure result",
+    "body": "Memoization is safest when a function is what?",
+    "options": ["Pure", "Random", "Dependent on global time"],
+    "correctOptionIndex": 0,
+    "takeaway": "Same input, same output makes cached results valid.",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "functional-option-v1",
+    "topic": "functional",
+    "type": "concept",
+    "title": "Model absence explicitly",
+    "body": "Option or nullable types force callers to acknowledge that a value may be missing.",
+    "takeaway": "Make impossible assumptions visible in the type system.",
+    "difficulty": "beginner"
+  },
+  {
+    "id": "craft-idempotency-v1",
+    "topic": "codeCraft",
+    "type": "quiz",
+    "title": "Safe to repeat",
+    "body": "An idempotent operation can be repeated with what effect?",
+    "options": ["A different result every time", "The same final state", "Guaranteed faster execution"],
+    "correctOptionIndex": 1,
+    "takeaway": "Idempotency makes retries safer.",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "craft-pagination-v1",
+    "topic": "codeCraft",
+    "type": "concept",
+    "title": "Do not fetch the universe",
+    "body": "Pagination bounds response size and lets interfaces progressively load large collections.",
+    "takeaway": "Prefer stable cursor pagination when data changes frequently.",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "craft-debounce-v1",
+    "topic": "codeCraft",
+    "type": "codeTip",
+    "title": "Wait for typing to pause",
+    "body": "Debouncing replaces many rapid search calls with one call after a quiet period.",
+    "code": "timer?.cancel();\ntimer = Timer(delay, () => search(query));",
+    "takeaway": "Debounce user bursts; throttle sustained streams.",
+    "difficulty": "beginner"
+  },
+  {
+    "id": "craft-schema-version-v1",
+    "topic": "codeCraft",
+    "type": "bugHunt",
+    "title": "Why did old clients break?",
+    "body": "The server renamed a required JSON field without coordinating clients. What was missing?",
+    "options": ["A brighter UI", "Schema versioning and compatibility", "More retries"],
+    "correctOptionIndex": 1,
+    "takeaway": "Evolve contracts additively or version breaking changes.",
+    "difficulty": "intermediate"
+  }
+]

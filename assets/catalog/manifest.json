@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "generatedAt": "2026-09-24T00:00:00Z",
+  "batchSize": 10,
+  "dailyCap": 50,
+  "minPrefetchUnseen": 20,
+  "batches": [
+    {"id": "0001", "path": "batches/0001.json", "cardCount": 10},
+    {"id": "0002", "path": "batches/0002.json", "cardCount": 10},
+    {"id": "0003", "path": "batches/0003.json", "cardCount": 10},
+    {"id": "0004", "path": "batches/0004.json", "cardCount": 10},
+    {"id": "0005", "path": "batches/0005.json", "cardCount": 10}
+  ]
+}

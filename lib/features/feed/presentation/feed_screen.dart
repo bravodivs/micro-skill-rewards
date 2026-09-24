@@ -201,9 +201,18 @@ class _FeedScreenState extends State<FeedScreen> {
           onSelected: _selectTopic,
         ),
         const SizedBox(height: 2),
+        if (controller.isPrefetching)
+          const LinearProgressIndicator(
+            minHeight: 2,
+            color: AppColors.ink,
+            backgroundColor: Colors.transparent,
+          ),
         Expanded(
           child: items.isEmpty
-              ? _EmptyFilter(onReset: () => _selectTopic(null))
+              ? _EmptyFilter(
+                  onReset: () => _selectTopic(null),
+                  message: controller.catalogSyncError == null ? null : 'No cached cards are available. Connect once to download today’s pack.',
+                )
               : PageView.builder(
                   key: ValueKey(controller.selectedTopic),
                   controller: _pageController,
@@ -211,6 +220,9 @@ class _FeedScreenState extends State<FeedScreen> {
                   itemCount: items.length + 1,
                   onPageChanged: (index) {
                     setState(() => _currentPage = index);
+                    if (index < items.length) {
+                      controller.onPageViewed(index);
+                    }
                   },
                   itemBuilder: (context, index) {
                     if (index == items.length) {
@@ -423,9 +435,10 @@ class _SavedLessons extends StatelessWidget {
 }
 
 class _EmptyFilter extends StatelessWidget {
-  const _EmptyFilter({required this.onReset});
+  const _EmptyFilter({required this.onReset, this.message});
 
   final VoidCallback onReset;
+  final String? message;
 
   @override
   Widget build(BuildContext context) {
@@ -436,7 +449,8 @@ class _EmptyFilter extends StatelessWidget {
           const Icon(Icons.filter_alt_off_rounded, size: 48),
           const SizedBox(height: 12),
           Text(
-            'No cards in this topic',
+            message ?? 'No cards in this topic',
+            textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: 12),

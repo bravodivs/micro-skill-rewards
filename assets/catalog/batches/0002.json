@@ -1,0 +1,106 @@
+[
+  {
+    "id": "dsa-two-pointers-v1",
+    "topic": "dsa",
+    "type": "concept",
+    "title": "Meet in the middle",
+    "body": "On sorted data, two pointers can shrink a search from both ends without checking every pair.",
+    "takeaway": "Try two pointers when order lets one comparison move a boundary.",
+    "difficulty": "beginner"
+  },
+  {
+    "id": "dsa-sliding-window-v1",
+    "topic": "dsa",
+    "type": "codeTip",
+    "title": "Reuse neighboring work",
+    "body": "A sliding window updates one range by removing the outgoing value and adding the incoming one.",
+    "code": "sum += values[right];\nwhile (sum > limit) {\n  sum -= values[left++];\n}",
+    "takeaway": "Sliding windows avoid recomputing every overlapping range.",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "dsa-queue-v1",
+    "topic": "dsa",
+    "type": "quiz",
+    "title": "Process in arrival order",
+    "body": "Which structure serves the oldest waiting request first?",
+    "options": ["Stack", "Priority heap", "Queue"],
+    "correctOptionIndex": 2,
+    "takeaway": "A queue is FIFO: first in, first out.",
+    "difficulty": "beginner"
+  },
+  {
+    "id": "dsa-bfs-v1",
+    "topic": "dsa",
+    "type": "quiz",
+    "title": "Find the shortest unweighted path",
+    "body": "Which traversal finds the fewest-edge path in an unweighted graph?",
+    "options": ["Depth-first search", "Breadth-first search", "Binary search"],
+    "correctOptionIndex": 1,
+    "takeaway": "BFS explores level by level, so the first visit uses the fewest edges.",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "dsa-dfs-v1",
+    "topic": "dsa",
+    "type": "concept",
+    "title": "Go deep, then backtrack",
+    "body": "Depth-first search follows one branch until it ends, then returns to try the next branch.",
+    "takeaway": "DFS fits exhaustive search, connected components, and recursive structures.",
+    "difficulty": "beginner"
+  },
+  {
+    "id": "dsa-prefix-sum-v1",
+    "topic": "dsa",
+    "type": "quiz",
+    "title": "Answer range sums quickly",
+    "body": "After O(n) preprocessing, what is the lookup cost for a prefix-sum range query?",
+    "options": ["O(n)", "O(1)", "O(log n)"],
+    "correctOptionIndex": 1,
+    "takeaway": "Range sum left..right is prefix[right] minus prefix[left - 1].",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "dsa-recursion-base-v1",
+    "topic": "dsa",
+    "type": "bugHunt",
+    "title": "What stops the calls?",
+    "body": "A recursive function keeps overflowing the stack. What is most likely missing?",
+    "options": ["A hash map", "A base case", "A queue"],
+    "correctOptionIndex": 1,
+    "takeaway": "Every recursive path needs to reach a base case.",
+    "difficulty": "beginner"
+  },
+  {
+    "id": "dsa-heap-v1",
+    "topic": "dsa",
+    "type": "quiz",
+    "title": "Keep the top K",
+    "body": "Which structure efficiently tracks the smallest item among the current top K?",
+    "options": ["Linked list", "Min-heap", "Stack"],
+    "correctOptionIndex": 1,
+    "takeaway": "A size-K min-heap exposes the threshold in O(1) and updates in O(log K).",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "dsa-tree-height-v1",
+    "topic": "dsa",
+    "type": "codeTip",
+    "title": "Measure a tree recursively",
+    "body": "A node's height is one plus the larger height of its children.",
+    "code": "int height(Node? n) => n == null\n    ? 0\n    : 1 + max(height(n.left), height(n.right));",
+    "takeaway": "State the answer for one node in terms of smaller subtrees.",
+    "difficulty": "beginner"
+  },
+  {
+    "id": "dsa-visited-set-v1",
+    "topic": "dsa",
+    "type": "bugHunt",
+    "title": "Why does graph search loop?",
+    "body": "Traversal keeps revisiting the same cycle. What should be added?",
+    "options": ["A visited set", "A sorted array", "A second root"],
+    "correctOptionIndex": 0,
+    "takeaway": "Mark nodes when discovered so cycles cannot enqueue them forever.",
+    "difficulty": "beginner"
+  }
+]

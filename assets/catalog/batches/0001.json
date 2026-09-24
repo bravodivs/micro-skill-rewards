@@ -1,0 +1,108 @@
+[
+  {
+    "id": "dsa-hash-map-v1",
+    "topic": "dsa",
+    "type": "concept",
+    "title": "Trade memory for speed",
+    "body": "A hash map turns repeated lookups into near-instant checks. In Two Sum, store each number as you scan and ask whether its complement is already present.",
+    "code": "for (final n in nums) {\n  if (seen.containsKey(target - n)) return true;\n  seen[n] = true;\n}",
+    "takeaway": "Use a hash map when you keep searching for things you have seen.",
+    "difficulty": "beginner"
+  },
+  {
+    "id": "craft-null-aware-v1",
+    "topic": "codeCraft",
+    "type": "codeTip",
+    "title": "Replace a branch with ??",
+    "body": "Null-aware operators make defaults explicit and keep the useful value in focus.",
+    "code": "final name = user.name ?? 'Guest';",
+    "takeaway": "Prefer the smallest expression that still communicates intent.",
+    "difficulty": "beginner"
+  },
+  {
+    "id": "dsa-binary-search-v1",
+    "topic": "dsa",
+    "type": "quiz",
+    "title": "When does binary search fit?",
+    "body": "Which condition makes classic binary search valid?",
+    "options": ["The collection is sorted", "Every value is unique", "The collection is a linked list"],
+    "correctOptionIndex": 0,
+    "takeaway": "Sorted order lets every comparison discard half the search space.",
+    "difficulty": "beginner"
+  },
+  {
+    "id": "functional-pure-v1",
+    "topic": "functional",
+    "type": "concept",
+    "title": "Pure functions are predictable",
+    "body": "A pure function returns the same output for the same input and changes nothing outside itself.",
+    "code": "int totalWithTax(int cents, double rate) =>\n    (cents * (1 + rate)).round();",
+    "takeaway": "Push side effects to the edges; keep business rules pure.",
+    "difficulty": "beginner"
+  },
+  {
+    "id": "craft-async-bug-v1",
+    "topic": "codeCraft",
+    "type": "bugHunt",
+    "title": "Why does this finish too early?",
+    "body": "The function prints done before every save completes. Pick the cause.",
+    "code": "items.forEach((item) async {\n  await save(item);\n});\nprint('done');",
+    "options": ["save must return void", "forEach does not await async callbacks", "print always runs asynchronously"],
+    "correctOptionIndex": 1,
+    "takeaway": "Use a for-in loop with await, or Future.wait for concurrent work.",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "dsa-stack-v1",
+    "topic": "dsa",
+    "type": "quiz",
+    "title": "Choose the right structure",
+    "body": "An editor needs Undo. Which structure restores the most recent action first?",
+    "options": ["Queue", "Stack", "Heap"],
+    "correctOptionIndex": 1,
+    "takeaway": "A stack is LIFO: the last action added is the first removed.",
+    "difficulty": "beginner"
+  },
+  {
+    "id": "functional-map-v1",
+    "topic": "functional",
+    "type": "codeTip",
+    "title": "Transform without bookkeeping",
+    "body": "Use map when every input becomes one output.",
+    "code": "final labels = users\n    .map((user) => user.displayName)\n    .toList();",
+    "takeaway": "Map answers: what should each item become?",
+    "difficulty": "beginner"
+  },
+  {
+    "id": "dsa-complexity-v1",
+    "topic": "dsa",
+    "type": "quiz",
+    "title": "Read the nested loop",
+    "body": "A loop visits every pair of n items. What is its time complexity?",
+    "options": ["O(n)", "O(log n)", "O(n²)"],
+    "correctOptionIndex": 2,
+    "takeaway": "n iterations multiplied by n iterations gives n² operations.",
+    "difficulty": "beginner"
+  },
+  {
+    "id": "craft-early-return-v1",
+    "topic": "codeCraft",
+    "type": "codeTip",
+    "title": "Flatten code with guard clauses",
+    "body": "Handle invalid cases first so the happy path stays unindented.",
+    "code": "if (cart.isEmpty) return Result.empty();\nif (!cart.isValid) return Result.invalid();\nreturn charge(cart);",
+    "takeaway": "Early returns reduce nesting and expose the main flow.",
+    "difficulty": "beginner"
+  },
+  {
+    "id": "functional-immutability-v1",
+    "topic": "functional",
+    "type": "quiz",
+    "title": "Why favor immutable data?",
+    "body": "What is the biggest everyday benefit of creating a changed copy?",
+    "options": ["Every operation uses less memory", "The compiler removes runtime errors", "State changes become easier to reason about"],
+    "correctOptionIndex": 2,
+    "takeaway": "Immutable values prevent distant code from changing data behind your back.",
+    "difficulty": "beginner"
+  }
+]

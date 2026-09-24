@@ -1,0 +1,49 @@
+name: Publish weekly Momentum catalog
+
+on:
+  schedule:
+    - cron: "0 7 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out content engine
+        uses: actions/checkout@v4
+
+      - name: Check out public catalog
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ vars.CATALOG_REPOSITORY }}
+          token: ${{ secrets.CATALOG_WRITE_TOKEN }}
+          path: catalog
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Test publisher
+        run: uv run python -m unittest discover -s tests
+
+      - name: Validate and publish up to 350 cards
+        run: >
+          uv run momentum-publish
+          --input content/cards.json
+          --catalog catalog
+          --weekly-limit 350
+
+      - name: Commit catalog update
+        working-directory: catalog
+        run: |
+          if git diff --quiet; then
+            echo "No new cards to publish."
+            exit 0
+          fi
+          git config user.name "Momentum Content Bot"
+          git config user.email "momentum-content-bot@users.noreply.github.com"
+          git add manifest.json batches/
+          git commit -m "Publish weekly Momentum content"
+          git push

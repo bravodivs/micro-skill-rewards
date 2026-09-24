@@ -1,0 +1,103 @@
+[
+  {
+    "id": "craft-single-purpose-v1",
+    "topic": "codeCraft",
+    "type": "concept",
+    "title": "Give functions one reason to change",
+    "body": "A focused function is easier to name, test, reuse, and replace.",
+    "takeaway": "If a function needs and then in its name, consider splitting it.",
+    "difficulty": "beginner"
+  },
+  {
+    "id": "craft-name-intent-v1",
+    "topic": "codeCraft",
+    "type": "quiz",
+    "title": "Name the intent",
+    "body": "Which variable name best communicates a duration measured in milliseconds?",
+    "options": ["x", "timeout", "timeoutMilliseconds"],
+    "correctOptionIndex": 2,
+    "takeaway": "Names should carry meaning and units when ambiguity is costly.",
+    "difficulty": "beginner"
+  },
+  {
+    "id": "craft-result-type-v1",
+    "topic": "codeCraft",
+    "type": "concept",
+    "title": "Make failure explicit",
+    "body": "A result type can represent success or a known failure without exceptions for expected outcomes.",
+    "takeaway": "Model recoverable failure as data the caller must handle.",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "craft-timeout-v1",
+    "topic": "codeCraft",
+    "type": "codeTip",
+    "title": "Bound remote work",
+    "body": "Network calls should not wait forever.",
+    "code": "final response = await client\n    .get(uri)\n    .timeout(const Duration(seconds: 8));",
+    "takeaway": "Set a timeout and define what the user sees when it expires.",
+    "difficulty": "beginner"
+  },
+  {
+    "id": "craft-retry-v1",
+    "topic": "codeCraft",
+    "type": "quiz",
+    "title": "Retry with restraint",
+    "body": "Which failure is usually safe to retry with backoff?",
+    "options": ["Invalid password", "Temporary 503 response", "Malformed JSON schema"],
+    "correctOptionIndex": 1,
+    "takeaway": "Retry transient failures, not permanent input or authorization errors.",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "craft-boundary-validation-v1",
+    "topic": "codeCraft",
+    "type": "concept",
+    "title": "Validate at the boundary",
+    "body": "Check external data when it enters your system, then let internal code rely on stronger guarantees.",
+    "takeaway": "Parse once into a valid domain type instead of checking everywhere.",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "craft-equality-v1",
+    "topic": "codeCraft",
+    "type": "bugHunt",
+    "title": "Why does the set contain duplicates?",
+    "body": "Two objects represent the same user but the set keeps both. What is missing?",
+    "options": ["A timer", "Value equality and matching hashCode", "An async function"],
+    "correctOptionIndex": 1,
+    "takeaway": "Equality and hashCode must describe the same identity.",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "craft-cancel-v1",
+    "topic": "codeCraft",
+    "type": "concept",
+    "title": "Cancel stale work",
+    "body": "Search results from an older query should not overwrite a newer query.",
+    "takeaway": "Cancel stale requests or compare request tokens before applying results.",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "craft-logs-v1",
+    "topic": "codeCraft",
+    "type": "quiz",
+    "title": "Write useful logs",
+    "body": "Which log is most useful during an incident?",
+    "options": ["Something failed", "Error!", "checkout_failed orderId=42 reason=timeout"],
+    "correctOptionIndex": 2,
+    "takeaway": "Structured context makes failures searchable and actionable.",
+    "difficulty": "beginner"
+  },
+  {
+    "id": "craft-cache-key-v1",
+    "topic": "codeCraft",
+    "type": "bugHunt",
+    "title": "Why is the wrong result cached?",
+    "body": "Responses vary by locale, but the cache key contains only the URL. What is wrong?",
+    "options": ["The key omits locale", "The response is JSON", "The cache is too fast"],
+    "correctOptionIndex": 0,
+    "takeaway": "A cache key must include every input that can change the output.",
+    "difficulty": "intermediate"
+  }
+]

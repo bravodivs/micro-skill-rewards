@@ -1,58 +1,55 @@
-import 'dart:convert';
-
 import 'package:momentum_learning_feed/features/feed/domain/progress_snapshot.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sqflite_common/sqlite_api.dart';
 
 abstract interface class ProgressStore {
   Future<ProgressSnapshot> load();
   Future<void> save(ProgressSnapshot snapshot);
 }
 
-class SharedPreferencesProgressStore implements ProgressStore {
-  const SharedPreferencesProgressStore(this.preferences);
+class SqliteProgressStore implements ProgressStore {
+  const SqliteProgressStore(this.database);
 
-  static const _storageKey = 'momentum_progress_v1';
-
-  final SharedPreferences preferences;
+  final Database database;
 
   @override
   Future<ProgressSnapshot> load() async {
-    final raw = preferences.getString(_storageKey);
-    if (raw == null) return const ProgressSnapshot();
+    final progressRows = await database.query(
+      'progress',
+      where: 'id = 1',
+      limit: 1,
+    );
+    final savedRows = await database.query('saved_cards');
+    final progress = progressRows.isEmpty
+        ? const <String, Object?>{}
+        : progressRows.single;
 
-    try {
-      final json = jsonDecode(raw) as Map<String, dynamic>;
-      final answerJson = (json['answers'] as Map<String, dynamic>?) ?? {};
-      return ProgressSnapshot(
-        xp: json['xp'] as int? ?? 0,
-        streak: json['streak'] as int? ?? 1,
-        completedIds: Set<String>.from(
-          json['completedIds'] as List? ?? const [],
-        ),
-        savedIds: Set<String>.from(json['savedIds'] as List? ?? const []),
-        answers: answerJson.map((key, value) => MapEntry(key, value as int)),
-        onboardingSeen: json['onboardingSeen'] as bool? ?? false,
-        lastActiveDate: json['lastActiveDate'] as String?,
-      );
-    } on FormatException {
-      return const ProgressSnapshot();
-    } on TypeError {
-      return const ProgressSnapshot();
-    }
+    return ProgressSnapshot(
+      xp: progress['xp'] as int? ?? 0,
+      streak: progress['streak'] as int? ?? 1,
+      savedIds: savedRows.map((row) => row['card_id'] as String).toSet(),
+      onboardingSeen: (progress['onboarding_seen'] as int? ?? 0) == 1,
+      lastActiveDate: progress['last_active_date'] as String?,
+    );
   }
 
   @override
   Future<void> save(ProgressSnapshot snapshot) async {
-    final json = jsonEncode({
-      'xp': snapshot.xp,
-      'streak': snapshot.streak,
-      'completedIds': snapshot.completedIds.toList(),
-      'savedIds': snapshot.savedIds.toList(),
-      'answers': snapshot.answers,
-      'onboardingSeen': snapshot.onboardingSeen,
-      'lastActiveDate': snapshot.lastActiveDate,
+    await database.transaction((txn) async {
+      await txn.insert('progress', {
+        'id': 1,
+        'xp': snapshot.xp,
+        'streak': snapshot.streak,
+        'onboarding_seen': snapshot.onboardingSeen ? 1 : 0,
+        'last_active_date': snapshot.lastActiveDate,
+      }, conflictAlgorithm: ConflictAlgorithm.replace);
+
+      await txn.delete('saved_cards');
+      for (final cardId in snapshot.savedIds) {
+        await txn.insert('saved_cards', {
+          'card_id': cardId,
+        }, conflictAlgorithm: ConflictAlgorithm.ignore);
+      }
     });
-    await preferences.setString(_storageKey, json);
   }
 }
 

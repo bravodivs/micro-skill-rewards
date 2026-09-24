@@ -1,143 +1,378 @@
+import 'dart:convert';
+import 'dart:math';
+
+import 'package:momentum_learning_feed/features/feed/data/catalog_source.dart';
+import 'package:momentum_learning_feed/features/feed/domain/catalog_manifest.dart';
+import 'package:momentum_learning_feed/features/feed/domain/daily_pack.dart';
 import 'package:momentum_learning_feed/features/feed/domain/learning_item.dart';
+import 'package:sqflite_common/sqlite_api.dart';
 
 class LearningContentRepository {
-  const LearningContentRepository();
+  LearningContentRepository({
+    required this.database,
+    required this.bundledSource,
+    this.remoteSource,
+  });
 
-  List<LearningItem> get dailyItems => const [
-    LearningItem(
-      id: 'dsa-hash-map',
-      topic: LearningTopic.dsa,
-      type: LearningItemType.concept,
-      title: 'Trade memory for speed',
-      body: 'A hash map turns repeated lookups into near-instant checks. In Two Sum, store each number as you scan and ask whether its complement is already present.',
-      code: '''for (final n in nums) {
-  if (seen.containsKey(target - n)) return true;
-  seen[n] = true;
-}''',
-      takeaway:
-          'Use a hash map when you keep searching for things you have seen.',
-    ),
-    LearningItem(
-      id: 'craft-null-aware',
-      topic: LearningTopic.codeCraft,
-      type: LearningItemType.codeTip,
-      title: 'Replace a branch with ??',
-      body: 'Null-aware operators make defaults explicit and keep the useful value in focus.',
-      code: '''// Noisy
-final name = user.name != null ? user.name! : 'Guest';
+  final Database database;
+  final CatalogSource bundledSource;
+  final CatalogSource? remoteSource;
 
-// Clear
-final name = user.name ?? 'Guest';''',
-      takeaway:
-          'Prefer the smallest expression that still communicates intent.',
-    ),
-    LearningItem(
-      id: 'dsa-binary-search',
-      topic: LearningTopic.dsa,
-      type: LearningItemType.quiz,
-      title: 'When does binary search fit?',
-      body: 'You need to find a value in a collection. Which condition makes classic binary search valid?',
-      options: [
-        'The collection is sorted',
-        'The collection has unique values',
-        'The collection is a linked list',
-      ],
-      correctOptionIndex: 0,
-      takeaway: 'Binary search relies on sorted order so every comparison can discard half the search space.',
-    ),
-    LearningItem(
-      id: 'functional-pure',
-      topic: LearningTopic.functional,
-      type: LearningItemType.concept,
-      title: 'Pure functions are predictable',
-      body: 'A pure function returns the same output for the same input and changes nothing outside itself. That makes it easy to test, cache, and run in parallel.',
-      code: '''int totalWithTax(int cents, double rate) {
-  return (cents * (1 + rate)).round();
-}''',
-      takeaway: 'Push side effects to the edges; keep business rules pure.',
-    ),
-    LearningItem(
-      id: 'craft-async-bug',
-      topic: LearningTopic.codeCraft,
-      type: LearningItemType.bugHunt,
-      title: 'Why does this finish too early?',
-      body: 'The function prints “done” before every save completes. Pick the cause.',
-      code: '''items.forEach((item) async {
-  await save(item);
-});
-print('done');''',
-      options: [
-        'forEach does not await async callbacks',
-        'save must return void',
-        'print always runs asynchronously',
-      ],
-      correctOptionIndex: 0,
-      takeaway: 'Use a for-in loop with await, or Future.wait when operations may run concurrently.',
-    ),
-    LearningItem(
-      id: 'dsa-stack',
-      topic: LearningTopic.dsa,
-      type: LearningItemType.quiz,
-      title: 'Choose the right structure',
-      body: 'An editor needs an Undo feature. Which structure naturally restores the most recent action first?',
-      options: ['Queue', 'Stack', 'Heap'],
-      correctOptionIndex: 1,
-      takeaway:
-          'A stack is LIFO: the last action added is the first one removed.',
-    ),
-    LearningItem(
-      id: 'functional-map',
-      topic: LearningTopic.functional,
-      type: LearningItemType.codeTip,
-      title: 'Transform without bookkeeping',
-      body: 'Use map when every input becomes one output. It separates the transformation from iteration details.',
-      code: '''final labels = users
-    .map((user) => user.displayName)
-    .toList();''',
-      takeaway: 'Map answers “what should each item become?”',
-    ),
-    LearningItem(
-      id: 'dsa-complexity',
-      topic: LearningTopic.dsa,
-      type: LearningItemType.quiz,
-      title: 'Read the nested loop',
-      body: 'A loop visits every pair of n items. What is its time complexity?',
-      code: '''for (var i = 0; i < n; i++) {
-  for (var j = 0; j < n; j++) {
-    compare(i, j);
+  CatalogManifest? _manifest;
+  String? lastSyncError;
+
+  int get dailyCap => _manifest?.dailyCap ?? 50;
+
+  Future<List<DailyPackEntry>> prepareDailyPack(DateTime date) async {
+    await _seedBundledCatalogIfNeeded();
+    await _loadStoredManifest();
+    await _refreshRemoteCatalog();
+    final dateKey = _dateOnly(date);
+    final existing = await loadDailyPack(dateKey);
+    if (existing.isNotEmpty) return existing;
+
+    if (await _unseenCount() == 0) {
+      await _fetchRemoteUntilUnseen(1);
+    }
+    final hasMoreRemote = await _hasUnfetchedRemoteBatches();
+    await _createDailyPack(
+      dateKey,
+      allowSeenFallback:
+          remoteSource == null || !hasMoreRemote || lastSyncError != null,
+    );
+    return loadDailyPack(dateKey);
   }
-}''',
-      options: ['O(n)', 'O(log n)', 'O(n²)'],
-      correctOptionIndex: 2,
-      takeaway: 'n iterations multiplied by n iterations gives n² operations.',
-    ),
-    LearningItem(
-      id: 'craft-early-return',
-      topic: LearningTopic.codeCraft,
-      type: LearningItemType.codeTip,
-      title: 'Flatten code with guard clauses',
-      body: 'Handle invalid or uninteresting cases first. The happy path stays unindented and easier to scan.',
-      code: '''Result checkout(Cart cart) {
-  if (cart.isEmpty) return Result.empty();
-  if (!cart.isValid) return Result.invalid();
 
-  return charge(cart);
-}''',
-      takeaway: 'Early returns reduce nesting and expose the main flow.',
-    ),
-    LearningItem(
-      id: 'functional-immutability',
-      topic: LearningTopic.functional,
-      type: LearningItemType.quiz,
-      title: 'Why favor immutable data?',
-      body: 'What is the biggest day-to-day benefit of creating a changed copy instead of mutating shared data?',
-      options: [
-        'Every operation uses less memory',
-        'State changes become easier to reason about',
-        'The compiler removes all runtime errors',
-      ],
-      correctOptionIndex: 1,
-      takeaway: 'Immutable values prevent distant code from changing data behind your back.',
-    ),
-  ];
+  Future<List<DailyPackEntry>> prefetchNearEnd({
+    required DateTime date,
+    required int currentIndex,
+  }) async {
+    final dateKey = _dateOnly(date);
+    final currentCount = Sqflite.firstIntValue(
+      await database.rawQuery(
+        'SELECT COUNT(*) FROM daily_pack WHERE pack_date = ?',
+        [dateKey],
+      ),
+    )!;
+    final unseen = await _unseenCount();
+    final nearEnd = currentCount - currentIndex <= 3;
+    final threshold = _manifest?.minPrefetchUnseen ?? 20;
+
+    if (nearEnd || unseen < threshold) {
+      await _fetchNextRemoteBatch();
+      await _extendDailyPack(dateKey);
+    }
+    return loadDailyPack(dateKey);
+  }
+
+  Future<List<DailyPackEntry>> loadDailyPack(String dateKey) async {
+    final rows = await database.rawQuery(
+      '''
+      SELECT p.position, p.option_order, p.completed, p.selected_answer, c.json
+      FROM daily_pack p
+      JOIN cards c ON c.id = p.card_id
+      WHERE p.pack_date = ?
+      ORDER BY p.position
+      ''',
+      [dateKey],
+    );
+    return rows
+        .map((row) {
+          final original = LearningItem.fromJson(
+            jsonDecode(row['json'] as String) as Map<String, dynamic>,
+          );
+          final optionOrder = (jsonDecode(
+            row['option_order'] as String,
+          ) as List).map((value) => value as int).toList(growable: false);
+          final item = optionOrder.isEmpty
+              ? original
+              : original.withOptionOrder(optionOrder);
+          return DailyPackEntry(
+            item: item,
+            position: row['position'] as int,
+            optionOrder: optionOrder,
+            completed: (row['completed'] as int) == 1,
+            selectedAnswer: row['selected_answer'] as int?,
+          );
+        })
+        .toList(growable: false);
+  }
+
+  Future<void> completeCard({
+    required String dateKey,
+    required LearningItem item,
+    required int? selectedAnswer,
+  }) async {
+    final correct = selectedAnswer == null
+        ? null
+        : selectedAnswer == item.correctOptionIndex;
+    await database.transaction((txn) async {
+      await txn.update(
+        'daily_pack',
+        {'completed': 1, 'selected_answer': selectedAnswer},
+        where: 'pack_date = ? AND card_id = ?',
+        whereArgs: [dateKey, item.id],
+      );
+      await txn.insert('card_history', {
+        'card_id': item.id,
+        'completed_at': DateTime.now().toUtc().toIso8601String(),
+        'correct': correct == null ? null : (correct ? 1 : 0),
+      }, conflictAlgorithm: ConflictAlgorithm.replace);
+    });
+  }
+
+  Future<List<LearningItem>> loadCardsByIds(Iterable<String> ids) async {
+    final idList = ids.toList(growable: false);
+    if (idList.isEmpty) return const [];
+    final placeholders = List.filled(idList.length, '?').join(',');
+    final rows = await database.rawQuery(
+      'SELECT json FROM cards WHERE id IN ($placeholders)',
+      idList,
+    );
+    final byId = <String, LearningItem>{
+      for (final row in rows)
+        (jsonDecode(row['json'] as String) as Map<String, dynamic>)['id']
+            as String: LearningItem.fromJson(
+          jsonDecode(row['json'] as String) as Map<String, dynamic>,
+        ),
+    };
+    return [
+      for (final id in idList)
+        if (byId[id] != null) byId[id]!,
+    ];
+  }
+
+  Future<void> _seedBundledCatalogIfNeeded() async {
+    final cardCount = Sqflite.firstIntValue(
+      await database.rawQuery('SELECT COUNT(*) FROM cards'),
+    )!;
+    if (cardCount > 0) return;
+
+    final manifest = await bundledSource.fetchManifest();
+    _manifest = manifest;
+    for (final batch in manifest.batches) {
+      final cards = await bundledSource.fetchBatch(batch);
+      await _storeBatch(batch, cards, source: 'bundle');
+    }
+    await _storeManifest(manifest);
+  }
+
+  Future<void> _loadStoredManifest() async {
+    final rows = await database.query(
+      'metadata',
+      columns: ['value'],
+      where: 'key = ?',
+      whereArgs: ['catalog_manifest'],
+      limit: 1,
+    );
+    if (rows.isEmpty) return;
+    _manifest = CatalogManifest.fromJson(
+      jsonDecode(rows.single['value'] as String) as Map<String, dynamic>,
+    );
+  }
+
+  Future<void> _refreshRemoteCatalog() async {
+    final source = remoteSource;
+    if (source == null) return;
+    try {
+      final remoteManifest = await source.fetchManifest();
+      _manifest = remoteManifest;
+      lastSyncError = null;
+      await _storeManifest(remoteManifest);
+    } catch (error) {
+      lastSyncError = error.toString();
+    }
+  }
+
+  Future<void> _fetchRemoteUntilUnseen(int target) async {
+    if (remoteSource == null) return;
+    while (await _unseenCount() < target) {
+      final fetched = await _fetchNextRemoteBatch();
+      if (!fetched) break;
+    }
+  }
+
+  Future<bool> _fetchNextRemoteBatch() async {
+    final manifest = _manifest;
+    final source = remoteSource;
+    if (source == null || manifest == null) return false;
+    final fetchedRows = await database.query(
+      'batches',
+      columns: ['id'],
+      where: 'source = ?',
+      whereArgs: ['remote'],
+    );
+    final fetched = fetchedRows.map((row) => row['id'] as String).toSet();
+    CatalogBatch? next;
+    for (final batch in manifest.batches) {
+      if (!fetched.contains('remote:${batch.id}')) {
+        next = batch;
+        break;
+      }
+    }
+    if (next == null) return false;
+    try {
+      final cards = await source.fetchBatch(next);
+      await _storeBatch(next, cards, source: 'remote');
+      lastSyncError = null;
+      return true;
+    } catch (error) {
+      lastSyncError = error.toString();
+      return false;
+    }
+  }
+
+  Future<bool> _hasUnfetchedRemoteBatches() async {
+    final manifest = _manifest;
+    if (remoteSource == null || manifest == null) return false;
+    final fetchedRows = await database.query(
+      'batches',
+      columns: ['id'],
+      where: 'source = ?',
+      whereArgs: ['remote'],
+    );
+    final fetched = fetchedRows.map((row) => row['id'] as String).toSet();
+    return manifest.batches.any(
+      (batch) => !fetched.contains('remote:${batch.id}'),
+    );
+  }
+
+  Future<void> _storeBatch(
+    CatalogBatch batch,
+    List<LearningItem> cards, {
+    required String source,
+  }) async {
+    final importedAt = DateTime.now().toUtc().toIso8601String();
+    await database.transaction((txn) async {
+      for (final card in cards) {
+        await txn.insert('cards', {
+          'id': card.id,
+          'topic': card.topic.name,
+          'type': card.type.name,
+          'json': jsonEncode(card.toJson()),
+          'imported_at': importedAt,
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+      await txn.insert('batches', {
+        'id': '$source:${batch.id}',
+        'path': batch.path,
+        'fetched_at': importedAt,
+        'source': source,
+      }, conflictAlgorithm: ConflictAlgorithm.replace);
+    });
+  }
+
+  Future<void> _storeManifest(CatalogManifest manifest) async {
+    await database.insert('metadata', {
+      'key': 'catalog_manifest',
+      'value': jsonEncode(manifest.toJson()),
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<int> _unseenCount() async => Sqflite.firstIntValue(
+    await database.rawQuery('''
+      SELECT COUNT(*)
+      FROM cards c
+      LEFT JOIN card_history h ON h.card_id = c.id
+      WHERE h.card_id IS NULL
+      '''),
+  )!;
+
+  Future<void> _createDailyPack(
+    String dateKey, {
+    required bool allowSeenFallback,
+  }) async {
+    final unseenRows = await database.rawQuery('''
+      SELECT c.id
+      FROM cards c
+      LEFT JOIN card_history h ON h.card_id = c.id
+      WHERE h.card_id IS NULL
+      ORDER BY c.id
+      ''');
+    final candidateIds = unseenRows.map((row) => row['id'] as String).toList();
+    candidateIds.shuffle(Random(_stableSeed(dateKey)));
+
+    if (allowSeenFallback && candidateIds.length < dailyCap) {
+      final allRows = await database.query('cards', columns: ['id']);
+      final fallback =
+          allRows
+              .map((row) => row['id'] as String)
+              .where((id) => !candidateIds.contains(id))
+              .toList()
+            ..shuffle(Random(_stableSeed('$dateKey:fallback')));
+      candidateIds.addAll(fallback);
+    }
+    await _insertPackEntries(
+      dateKey,
+      candidateIds.take(dailyCap).toList(),
+      startPosition: 0,
+    );
+  }
+
+  Future<void> _extendDailyPack(String dateKey) async {
+    final currentRows = await database.query(
+      'daily_pack',
+      columns: ['card_id'],
+      where: 'pack_date = ?',
+      whereArgs: [dateKey],
+      orderBy: 'position',
+    );
+    if (currentRows.length >= dailyCap) return;
+    final existing = currentRows.map((row) => row['card_id'] as String).toSet();
+    final candidates = await database.rawQuery('''
+      SELECT c.id
+      FROM cards c
+      LEFT JOIN card_history h ON h.card_id = c.id
+      WHERE h.card_id IS NULL
+      ORDER BY c.imported_at, c.id
+      ''');
+    final additions = candidates
+        .map((row) => row['id'] as String)
+        .where((id) => !existing.contains(id))
+        .take(dailyCap - currentRows.length)
+        .toList();
+    await _insertPackEntries(
+      dateKey,
+      additions,
+      startPosition: currentRows.length,
+    );
+  }
+
+  Future<void> _insertPackEntries(
+    String dateKey,
+    List<String> cardIds, {
+    required int startPosition,
+  }) async {
+    if (cardIds.isEmpty) return;
+    final cards = await loadCardsByIds(cardIds);
+    final cardsById = {for (final card in cards) card.id: card};
+    await database.transaction((txn) async {
+      for (var index = 0; index < cardIds.length; index++) {
+        final card = cardsById[cardIds[index]]!;
+        final optionOrder = List<int>.generate(card.options.length, (i) => i);
+        optionOrder.shuffle(Random(_stableSeed('$dateKey:${card.id}:options')));
+        await txn.insert('daily_pack', {
+          'pack_date': dateKey,
+          'position': startPosition + index,
+          'card_id': card.id,
+          'option_order': jsonEncode(optionOrder),
+          'completed': 0,
+        }, conflictAlgorithm: ConflictAlgorithm.ignore);
+      }
+    });
+  }
+
+  int _stableSeed(String value) {
+    var hash = 17;
+    for (final unit in value.codeUnits) {
+      hash = 0x1fffffff & (hash * 31 + unit);
+    }
+    return hash;
+  }
+
+  String _dateOnly(DateTime date) {
+    final month = date.month.toString().padLeft(2, '0');
+    final day = date.day.toString().padLeft(2, '0');
+    return '${date.year}-$month-$day';
+  }
 }

@@ -1,86 +1,105 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:momentum_learning_feed/features/feed/application/feed_controller.dart';
-import 'package:momentum_learning_feed/features/feed/data/learning_content_repository.dart';
 import 'package:momentum_learning_feed/features/feed/data/progress_store.dart';
-import 'package:momentum_learning_feed/features/feed/domain/learning_item.dart';
 import 'package:momentum_learning_feed/features/feed/domain/progress_snapshot.dart';
 
-Future<FeedController> buildController({
-  ProgressSnapshot snapshot = const ProgressSnapshot(),
-  DateTime? now,
-}) async {
-  final controller = FeedController(
-    contentRepository: const LearningContentRepository(),
-    progressStore: MemoryProgressStore(snapshot),
-    now: () => now ?? DateTime(2026, 8, 29),
-  );
-  await controller.initialize();
-  return controller;
-}
+import 'test_support.dart';
 
 void main() {
-  group('FeedController', () {
-    test('awards XP once for a completed concept', () async {
-      final controller = await buildController();
-      final concept = controller.allItems.first;
+  test('draws a finite 50-card daily pack', () async {
+    final appDatabase = await openTestDatabase();
+    addTearDown(appDatabase.close);
+    final controller = FeedController(
+      contentRepository: testRepository(appDatabase: appDatabase),
+      progressStore: SqliteProgressStore(appDatabase.database),
+      now: () => DateTime(2026, 9, 24),
+    );
 
-      expect(await controller.completeItem(concept), 10);
-      expect(await controller.completeItem(concept), 0);
-      expect(controller.xp, 10);
-      expect(controller.completedCount, 1);
-    });
+    await controller.initialize();
 
-    test('scores correct and incorrect answers deterministically', () async {
-      final controller = await buildController();
-      final quizzes = controller.allItems.where((item) => item.isInteractive);
+    expect(controller.allItems, hasLength(50));
+    expect(controller.dailyLimit, 50);
+    expect(controller.completedCount, 0);
+  });
 
-      final correct = quizzes.first;
-      final incorrect = quizzes.skip(1).first;
-      expect(
-        await controller.completeItem(
-          correct,
-          selectedOption: correct.correctOptionIndex,
-        ),
-        20,
-      );
-      expect(
-        await controller.completeItem(
-          incorrect,
-          selectedOption:
-              (incorrect.correctOptionIndex! + 1) % incorrect.options.length,
-        ),
-        5,
-      );
-      expect(controller.xp, 25);
-    });
+  test('awards XP once and persists shuffled quiz scoring', () async {
+    final appDatabase = await openTestDatabase();
+    addTearDown(appDatabase.close);
+    final controller = FeedController(
+      contentRepository: testRepository(appDatabase: appDatabase),
+      progressStore: SqliteProgressStore(appDatabase.database),
+      now: () => DateTime(2026, 9, 24),
+    );
+    await controller.initialize();
+    final quiz = controller.allItems.firstWhere((item) => item.isInteractive);
 
-    test('filters items without discarding progress', () async {
-      final controller = await buildController();
-      final first = controller.allItems.first;
-      await controller.completeItem(first);
+    expect(
+      await controller.completeItem(
+        quiz,
+        selectedOption: quiz.correctOptionIndex,
+      ),
+      20,
+    );
+    expect(
+      await controller.completeItem(
+        quiz,
+        selectedOption: quiz.correctOptionIndex,
+      ),
+      0,
+    );
 
-      controller.selectTopic(LearningTopic.functional);
+    final reloaded = await controller.contentRepository.loadDailyPack(
+      '2026-09-24',
+    );
+    final savedQuiz = reloaded.firstWhere((entry) => entry.item.id == quiz.id);
+    expect(savedQuiz.completed, isTrue);
+    expect(savedQuiz.selectedAnswer, quiz.correctOptionIndex);
+    expect(controller.xp, 20);
+  });
 
-      expect(
-        controller.visibleItems.every(
-          (item) => item.topic == LearningTopic.functional,
-        ),
-        isTrue,
-      );
-      expect(controller.isCompleted(first.id), isTrue);
-    });
+  test('a new day resets daily completion but keeps lifetime XP', () async {
+    final appDatabase = await openTestDatabase();
+    addTearDown(appDatabase.close);
+    final repository = testRepository(appDatabase: appDatabase);
+    final progressStore = SqliteProgressStore(appDatabase.database);
+    final dayOne = FeedController(
+      contentRepository: repository,
+      progressStore: progressStore,
+      now: () => DateTime(2026, 9, 24),
+    );
+    await dayOne.initialize();
+    final concept = dayOne.allItems.firstWhere((item) => !item.isInteractive);
+    await dayOne.completeItem(concept);
 
-    test('increments a consecutive daily streak', () async {
-      final controller = await buildController(
-        snapshot: const ProgressSnapshot(
-          streak: 4,
-          lastActiveDate: '2026-08-28',
-        ),
-        now: DateTime(2026, 8, 29),
-      );
+    final dayTwo = FeedController(
+      contentRepository: repository,
+      progressStore: progressStore,
+      now: () => DateTime(2026, 9, 25),
+    );
+    await dayTwo.initialize();
 
-      expect(controller.streak, 5);
-      expect(controller.snapshot.lastActiveDate, '2026-08-29');
-    });
+    expect(dayTwo.completedCount, 0);
+    expect(dayTwo.xp, 10);
+    expect(dayTwo.streak, 2);
+    expect(dayTwo.allItems, hasLength(50));
+  });
+
+  test('loads saved progress from SQLite', () async {
+    final appDatabase = await openTestDatabase();
+    addTearDown(appDatabase.close);
+    final store = SqliteProgressStore(appDatabase.database);
+    await store.save(
+      const ProgressSnapshot(
+        xp: 35,
+        streak: 3,
+        onboardingSeen: true,
+        lastActiveDate: '2026-09-24',
+      ),
+    );
+    final restored = await store.load();
+
+    expect(restored.xp, 35);
+    expect(restored.streak, 3);
+    expect(restored.onboardingSeen, isTrue);
   });
 }

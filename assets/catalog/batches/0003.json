@@ -1,0 +1,102 @@
+[
+  {
+    "id": "functional-filter-v1",
+    "topic": "functional",
+    "type": "codeTip",
+    "title": "Keep only what qualifies",
+    "body": "Filter expresses selection without managing a result list manually.",
+    "code": "final active = users.where((user) => user.isActive).toList();",
+    "takeaway": "Filter answers: which existing items should remain?",
+    "difficulty": "beginner"
+  },
+  {
+    "id": "functional-fold-v1",
+    "topic": "functional",
+    "type": "quiz",
+    "title": "Many values become one",
+    "body": "Which operation combines a collection into a single accumulated result?",
+    "options": ["map", "fold", "where"],
+    "correctOptionIndex": 1,
+    "takeaway": "Fold carries an accumulator through every item.",
+    "difficulty": "beginner"
+  },
+  {
+    "id": "functional-side-effects-v1",
+    "topic": "functional",
+    "type": "concept",
+    "title": "Name the side effects",
+    "body": "Network calls, file writes, logs, and mutable global state make results depend on more than inputs.",
+    "takeaway": "Isolate effects behind explicit boundaries so the core stays testable.",
+    "difficulty": "beginner"
+  },
+  {
+    "id": "functional-compose-v1",
+    "topic": "functional",
+    "type": "concept",
+    "title": "Build behavior from small steps",
+    "body": "Function composition pipes one function's output into the next function's input.",
+    "takeaway": "Small focused transformations are easier to test and reuse.",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "functional-copy-with-v1",
+    "topic": "functional",
+    "type": "codeTip",
+    "title": "Change data without mutation",
+    "body": "Create a new value while preserving every field that did not change.",
+    "code": "final updated = user.copyWith(isActive: false);",
+    "takeaway": "Copy-with makes state transitions explicit.",
+    "difficulty": "beginner"
+  },
+  {
+    "id": "functional-referential-v1",
+    "topic": "functional",
+    "type": "quiz",
+    "title": "Replace a call with its value",
+    "body": "What property allows an expression to be replaced by its result without changing behavior?",
+    "options": ["Lazy loading", "Referential transparency", "Inheritance"],
+    "correctOptionIndex": 1,
+    "takeaway": "Pure expressions are referentially transparent.",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "functional-lazy-v1",
+    "topic": "functional",
+    "type": "concept",
+    "title": "Compute only when needed",
+    "body": "Lazy iteration can stop after finding enough results instead of materializing an entire pipeline.",
+    "takeaway": "Delay work when consumers may need only part of a sequence.",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "functional-flat-map-v1",
+    "topic": "functional",
+    "type": "quiz",
+    "title": "Map, then flatten",
+    "body": "Which operation turns each input into a collection and combines the results?",
+    "options": ["flatMap / expand", "sort", "filter"],
+    "correctOptionIndex": 0,
+    "takeaway": "Flat-map is useful for nested collections and dependent async steps.",
+    "difficulty": "intermediate"
+  },
+  {
+    "id": "functional-currying-v1",
+    "topic": "functional",
+    "type": "concept",
+    "title": "Configure a function in stages",
+    "body": "Currying turns a multi-argument function into a chain of one-argument functions.",
+    "takeaway": "Partial application creates specialized functions from general ones.",
+    "difficulty": "advanced"
+  },
+  {
+    "id": "functional-shared-mutation-v1",
+    "topic": "functional",
+    "type": "bugHunt",
+    "title": "Why did the old screen change?",
+    "body": "Two screens reference the same mutable list. One appends an item. What caused the surprise?",
+    "options": ["Shared mutation", "Garbage collection", "Tail recursion"],
+    "correctOptionIndex": 0,
+    "takeaway": "Copy collections before changing them, or expose immutable views.",
+    "difficulty": "beginner"
+  }
+]
