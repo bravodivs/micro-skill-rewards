@@ -1,6 +1,5 @@
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
-import 'package:sqflite_common/sqlite_api.dart';
 
 class AppDatabase {
   AppDatabase._(this.database);

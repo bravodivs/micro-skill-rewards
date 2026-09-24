@@ -5,7 +5,7 @@ import 'package:momentum_learning_feed/features/feed/data/catalog_source.dart';
 import 'package:momentum_learning_feed/features/feed/domain/catalog_manifest.dart';
 import 'package:momentum_learning_feed/features/feed/domain/daily_pack.dart';
 import 'package:momentum_learning_feed/features/feed/domain/learning_item.dart';
-import 'package:sqflite_common/sqlite_api.dart';
+import 'package:sqflite/sqflite.dart';
 
 class LearningContentRepository {
   LearningContentRepository({
@@ -48,12 +48,12 @@ class LearningContentRepository {
     required int currentIndex,
   }) async {
     final dateKey = _dateOnly(date);
-    final currentCount = Sqflite.firstIntValue(
+    final currentCount = _firstInt(
       await database.rawQuery(
         'SELECT COUNT(*) FROM daily_pack WHERE pack_date = ?',
         [dateKey],
       ),
-    )!;
+    );
     final unseen = await _unseenCount();
     final nearEnd = currentCount - currentIndex <= 3;
     final threshold = _manifest?.minPrefetchUnseen ?? 20;
@@ -143,9 +143,9 @@ class LearningContentRepository {
   }
 
   Future<void> _seedBundledCatalogIfNeeded() async {
-    final cardCount = Sqflite.firstIntValue(
+    final cardCount = _firstInt(
       await database.rawQuery('SELECT COUNT(*) FROM cards'),
-    )!;
+    );
     if (cardCount > 0) return;
 
     final manifest = await bundledSource.fetchManifest();
@@ -269,14 +269,14 @@ class LearningContentRepository {
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
-  Future<int> _unseenCount() async => Sqflite.firstIntValue(
+  Future<int> _unseenCount() async => _firstInt(
     await database.rawQuery('''
       SELECT COUNT(*)
       FROM cards c
       LEFT JOIN card_history h ON h.card_id = c.id
       WHERE h.card_id IS NULL
       '''),
-  )!;
+  );
 
   Future<void> _createDailyPack(
     String dateKey, {
@@ -375,4 +375,9 @@ class LearningContentRepository {
     final day = date.day.toString().padLeft(2, '0');
     return '${date.year}-$month-$day';
   }
+}
+
+int _firstInt(List<Map<String, Object?>> rows) {
+  if (rows.isEmpty || rows.first.isEmpty) return 0;
+  return rows.first.values.first as int? ?? 0;
 }

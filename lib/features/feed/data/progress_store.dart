@@ -1,5 +1,5 @@
 import 'package:momentum_learning_feed/features/feed/domain/progress_snapshot.dart';
-import 'package:sqflite_common/sqlite_api.dart';
+import 'package:sqflite/sqflite.dart';
 
 abstract interface class ProgressStore {
   Future<ProgressSnapshot> load();
