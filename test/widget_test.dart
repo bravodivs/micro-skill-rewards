@@ -22,37 +22,30 @@ createController({ProgressSnapshot snapshot = const ProgressSnapshot()}) async {
 
 void main() {
   testWidgets('onboarding opens the finite daily feed', (tester) async {
-    final harness = await createController();
-    debugPrint('widget-test: controller ready');
+    final harness = (await tester.runAsync(createController))!;
     final controller = harness.controller;
     await tester.pumpWidget(MomentumApp(controller: controller));
-    debugPrint('widget-test: onboarding pumped');
 
     expect(find.text('Scroll less.\nGrow more.'), findsOneWidget);
     expect(find.textContaining('50 cards'), findsOneWidget);
-    debugPrint('widget-test: onboarding verified');
 
     await tester.tap(find.textContaining('Start today'));
-    debugPrint('widget-test: start tapped');
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
-    debugPrint('widget-test: feed pumped');
-    await controller.onPageViewed(0);
-    debugPrint('widget-test: prefetch complete');
+    await tester.runAsync(() => controller.onPageViewed(0));
 
     expect(find.text('MOMENTUM'), findsOneWidget);
     expect(controller.allItems, hasLength(50));
-    debugPrint('widget-test: feed verified');
     await tester.pumpWidget(const SizedBox.shrink());
-    debugPrint('widget-test: app unmounted');
-    await harness.appDatabase.close();
-    debugPrint('widget-test: database closed');
+    await tester.runAsync(harness.appDatabase.close);
   });
 
   testWidgets('learning and bookmarking update the interface', (tester) async {
-    final harness = await createController(
-      snapshot: const ProgressSnapshot(onboardingSeen: true),
-    );
+    final harness = (await tester.runAsync(
+      () => createController(
+        snapshot: const ProgressSnapshot(onboardingSeen: true),
+      ),
+    ))!;
     final controller = harness.controller;
     await tester.pumpWidget(MomentumApp(controller: controller));
 
@@ -69,6 +62,9 @@ void main() {
     final completeButton = find.byKey(const Key('complete_item_button'));
     await tester.ensureVisible(completeButton);
     await tester.tap(completeButton);
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 50)),
+    );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
 
@@ -78,16 +74,19 @@ void main() {
     final bookmark = find.byTooltip('Save lesson');
     await tester.ensureVisible(bookmark);
     await tester.tap(bookmark);
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 50)),
+    );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
     await tester.tap(find.text('Saved'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
-    await controller.onPageViewed(conceptIndex);
+    await tester.runAsync(() => controller.onPageViewed(conceptIndex));
 
     expect(find.text('Saved lessons'), findsOneWidget);
     expect(find.text(concept.title), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());
-    await harness.appDatabase.close();
+    await tester.runAsync(harness.appDatabase.close);
   });
 }
