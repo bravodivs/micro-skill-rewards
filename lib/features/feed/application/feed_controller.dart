@@ -84,6 +84,10 @@ class FeedController extends ChangeNotifier {
   }
 
   Future<void> onPageViewed(int index) {
+    if (contentRepository.remoteSource == null ||
+        _allItems.length >= dailyLimit) {
+      return Future.value();
+    }
     final active = _activePrefetch;
     if (active != null) return active;
     final checkKey = '${_allItems.length}:$index';
