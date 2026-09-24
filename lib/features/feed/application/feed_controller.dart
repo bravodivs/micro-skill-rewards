@@ -23,6 +23,7 @@ class FeedController extends ChangeNotifier {
   int _navigationIndex = 0;
   bool _onboardingSeen = false;
   bool _isPrefetching = false;
+  final Set<String> _prefetchChecks = {};
   LearningTopic? _selectedTopic;
   Set<String> _completedIds = {};
   Set<String> _savedIds = {};
@@ -82,7 +83,13 @@ class FeedController extends ChangeNotifier {
   }
 
   Future<void> onPageViewed(int index) async {
-    if (_isPrefetching || index >= _allItems.length) return;
+    final checkKey = '${_allItems.length}:$index';
+    if (_isPrefetching ||
+        index >= _allItems.length ||
+        _prefetchChecks.contains(checkKey)) {
+      return;
+    }
+    _prefetchChecks.add(checkKey);
     _isPrefetching = true;
     notifyListeners();
     try {
