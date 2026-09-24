@@ -23,21 +23,30 @@ createController({ProgressSnapshot snapshot = const ProgressSnapshot()}) async {
 void main() {
   testWidgets('onboarding opens the finite daily feed', (tester) async {
     final harness = await createController();
+    debugPrint('widget-test: controller ready');
     final controller = harness.controller;
     await tester.pumpWidget(MomentumApp(controller: controller));
+    debugPrint('widget-test: onboarding pumped');
 
     expect(find.text('Scroll less.\nGrow more.'), findsOneWidget);
     expect(find.textContaining('50 cards'), findsOneWidget);
+    debugPrint('widget-test: onboarding verified');
 
     await tester.tap(find.textContaining('Start today'));
+    debugPrint('widget-test: start tapped');
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
+    debugPrint('widget-test: feed pumped');
     await controller.onPageViewed(0);
+    debugPrint('widget-test: prefetch complete');
 
     expect(find.text('MOMENTUM'), findsOneWidget);
     expect(controller.allItems, hasLength(50));
+    debugPrint('widget-test: feed verified');
     await tester.pumpWidget(const SizedBox.shrink());
+    debugPrint('widget-test: app unmounted');
     await harness.appDatabase.close();
+    debugPrint('widget-test: database closed');
   });
 
   testWidgets('learning and bookmarking update the interface', (tester) async {
