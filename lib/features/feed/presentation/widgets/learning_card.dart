@@ -47,11 +47,8 @@ class LearningCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(27),
               border: Border.all(color: AppColors.ink.withValues(alpha: 0.08)),
             ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(27),
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
-                child: Column(
+            child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
@@ -145,9 +142,7 @@ class LearningCard extends StatelessWidget {
                       ),
                   ],
                 ),
-              ),
             ),
-          ),
         ),
       ),
     );

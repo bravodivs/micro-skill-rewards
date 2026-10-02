@@ -30,7 +30,7 @@ class CompletionCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(30),
         ),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
               width: 78,

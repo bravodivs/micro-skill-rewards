@@ -17,50 +17,75 @@ class FeedScreen extends StatefulWidget {
 }
 
 class _FeedScreenState extends State<FeedScreen> {
-  late final PageController _pageController;
-  int _currentPage = 0;
+  late final ScrollController _scrollController;
+  final _cardKeys = <String, GlobalKey>{};
+  final _endKey = GlobalKey();
+  bool _showBackToTop = false;
+
+  GlobalKey _keyFor(String id) => _cardKeys.putIfAbsent(id, GlobalKey.new);
 
   @override
   void initState() {
     super.initState();
-    _pageController = PageController();
+    _scrollController = ScrollController()..addListener(_onScroll);
   }
 
   @override
   void dispose() {
-    _pageController.dispose();
+    _scrollController
+      ..removeListener(_onScroll)
+      ..dispose();
     super.dispose();
   }
 
-  void _selectTopic(LearningTopic? topic) {
-    if (_pageController.hasClients) _pageController.jumpToPage(0);
-    setState(() => _currentPage = 0);
-    widget.controller.selectTopic(topic);
+  void _onScroll() {
+    final show = _scrollController.offset > 720;
+    if (show == _showBackToTop) return;
+    setState(() => _showBackToTop = show);
   }
 
-  void _nextPage() {
-    final lastPage = widget.controller.visibleItems.length;
-    if (!_pageController.hasClients || _currentPage >= lastPage) return;
-    _pageController.nextPage(
+  void _scrollToTop() {
+    _scrollController.animateTo(
+      0,
+      duration: const Duration(microseconds: 420),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  void _scrollToKey(GlobalKey key) {
+    final target = key.currentContext;
+    if (target == null) return;
+    Scrollable.ensureVisible(
+      target,
       duration: const Duration(milliseconds: 420),
       curve: Curves.easeOutCubic,
     );
   }
 
-  void _reviewFeed() {
-    _selectTopic(null);
-    if (_pageController.hasClients) _pageController.jumpToPage(0);
+  void _selectTopic(LearningTopic? topic) {
+    if (_scrollController.hasClients) _scrollController.jumpTo(0);
+    setState(() => _showBackToTop = false);
+    widget.controller.selectTopic(topic);
   }
+
+  void _reviewFeed() => _selectTopic(null);
 
   void _openSavedItem(LearningItem item) {
     widget.controller.selectTopic(null);
     widget.controller.setNavigationIndex(0);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_pageController.hasClients) return;
-      final index = widget.controller.visibleItems.indexOf(item);
-      _pageController.jumpToPage(index);
-      setState(() => _currentPage = index);
+      _scrollToKey(_keyFor(item.id));
     });
+  }
+
+  void _scrollToCard(int index) {
+    final context = _cardKeys[index]?.currentContext;
+    if (context == null) return;
+    Scrollable.ensureVisible(
+      context,
+      duration: const Duration(milliseconds: 420),
+      curve: Curves.easeOutCubic,
+    );
   }
 
   Future<void> _answer(LearningItem item, int option) async {
@@ -170,19 +195,83 @@ class _FeedScreenState extends State<FeedScreen> {
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Stack(
                   children: [
-                    Text(
-                      'MOMENTUM',
-                      style: Theme.of(context).textTheme.titleMedium
-                          ?.copyWith(letterSpacing: 1.4, fontSize: 14),
-                    ),
-                    Text(
-                      '${controller.streak} day streak',
-                      style: Theme.of(context).textTheme.bodyMedium
-                          ?.copyWith(fontSize: 12),
-                    ),
+                    items.isEmpty
+                        ? _EmptyFilter(
+                            onReset: () => _selectTopic(null),
+                            message: controller.catalogSyncError == null
+                                ? null
+                                : 'No cached cards are available. Connect once to download today`s pack.',
+                          )
+                        : NotificationListener<ScrollUpdateNotification>(
+                            onNotification: (notification) {
+                              final metrics = notification.metrics;
+                              if (metrics.maxScrollExtent <= 0) return false;
+                              final index =
+                                  (metrics.pixels /
+                                          metrics.maxScrollExtent *
+                                          items.length)
+                                      .floor()
+                                      .clamp(0, items.length - 1);
+                              controller.onPageViewed(index);
+                              return false;
+                            },
+                            child: ListView.builder(
+                              key: ValueKey(controller.selectedTopic),
+                              controller: _scrollController,
+                              padding: const EdgeInsets.only(bottom: 88),
+                              itemCount: items.length + 1,
+                              itemBuilder: (context, index) {
+                                if (index == items.length) {
+                                  final completedInFilter = items
+                                      .where(
+                                        (item) =>
+                                            controller.isCompleted(item.id),
+                                      )
+                                      .length;
+                                  return CompletionCard(
+                                    completedCount: completedInFilter,
+                                    totalCount: items.length,
+                                    xp: controller.xp,
+                                    onReview: _reviewFeed,
+                                    onSaved: () =>
+                                        controller.setNavigationIndex(1),
+                                    key: _endKey,
+                                  );
+                                }
+                                final item = items[index];
+                                return LearningCard(
+                                  item: item,
+                                  isSaved: controller.isSaved(item.id),
+                                  isCompleted: controller.isCompleted(item.id),
+                                  selectedAnswer: controller.answerFor(item.id),
+                                  onSaved: () =>
+                                      controller.toggleSaved(item.id),
+                                  onAnswer: (option) => _answer(item, option),
+                                  onComplete: () => _complete(item),
+                                  onNext: () => _scrollToKey(
+                                    index + 1 == items.length
+                                        ? _endKey
+                                        : _keyFor(items[index + 1].id),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                    if (_showBackToTop)
+                      Positioned(
+                        right: 16,
+                        bottom: 16,
+                        child: FloatingActionButton.small(
+                          onPressed: _scrollToTop,
+                          heroTag: 'back-to-top',
+                          tooltip: 'Back to top',
+                          backgroundColor: AppColors.ink,
+                          foregroundColor: AppColors.lime,
+                          child: const Icon(Icons.arrow_upward_rounded),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -213,18 +302,14 @@ class _FeedScreenState extends State<FeedScreen> {
                   onReset: () => _selectTopic(null),
                   message: controller.catalogSyncError == null ? null : 'No cached cards are available. Connect once to download today’s pack.',
                 )
-              : PageView.builder(
+              : ListView.builder(
                   key: ValueKey(controller.selectedTopic),
-                  controller: _pageController,
-                  scrollDirection: Axis.vertical,
+                  controller: _scrollController,
                   itemCount: items.length + 1,
-                  onPageChanged: (index) {
-                    setState(() => _currentPage = index);
+                  itemBuilder: (context, index) {
                     if (index < items.length) {
                       controller.onPageViewed(index);
                     }
-                  },
-                  itemBuilder: (context, index) {
                     if (index == items.length) {
                       final completedInFilter = items
                           .where((item) => controller.isCompleted(item.id))
@@ -247,7 +332,7 @@ class _FeedScreenState extends State<FeedScreen> {
                       onSaved: () => controller.toggleSaved(item.id),
                       onAnswer: (option) => _answer(item, option),
                       onComplete: () => _complete(item),
-                      onNext: _nextPage,
+                      onNext: () => _scrollToCard(index + 1),
                     );
                   },
                 ),
