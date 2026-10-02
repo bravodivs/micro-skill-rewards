@@ -13,7 +13,7 @@ Future<void> main() async {
 
   const contentBaseUrl = String.fromEnvironment(
     'CONTENT_BASE_URL',
-    defaultValue: '',
+    defaultValue: 'https://raw.githubusercontent.com/bravodivs/momentum-catalog/main/',
   );
   final appDatabase = kIsWeb
       ? await AppDatabase.open(
